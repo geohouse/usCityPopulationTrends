@@ -2,6 +2,7 @@
 library(shiny)
 library(ggmap)
 library(dplyr)
+library(lubridate)
 
 popnData <- readRDS(file = "~/GitHub/usCityPopulationTrends/US_census_cityPopnData_latlonAdded_070121.Rds")
 
@@ -10,8 +11,14 @@ us_map_watercolor <- readRDS(file = "~/GitHub/usCityPopulationTrends/backgroundM
 # Define the UI
 ui <- fluidPage(
     titlePanel(title = "Population changes in U.S. cities from 2010-2019"),
+    # Can't get the year to display as e.g. '2010', it always shows as '2,010' instead unless I include the month/day too
+    # (even if using dates formatted with lubridate)
     fluidRow(
-        column(9, "slider holder"),
+        column(9, "slider holder", sliderInput(inputId = "yearSlider", 
+                                               label = h4("Year range for plotting"),
+                                               min = as.Date(x = "2010-07-01"), 
+                                               max = as.Date(x = "2019-07-01"),
+                                               value = c(as.Date(x = "2010-07-01"), as.Date(x = "2019-07-01")), step = 365)),
         column(3, "show holder"),
         fluidRow(
             column(12, "show", offset = 9)
@@ -26,7 +33,7 @@ ui <- fluidPage(
     ),
     fluidRow(
         column(9, "plot", plotOutput(outputId = "map")),
-        column(3, "table")
+        column(3, "table", textOutput(outputId = "selection"))
         
     )
     
@@ -53,6 +60,14 @@ server <- function(input, output){
         ggmap(us_map_watercolor) + 
         geom_point(data = popnData, mapping = aes(x = longitude, y = latitude, color = colorHolder, size = perc_change_decade), alpha = 0.6) + 
         scale_color_manual(values = plotColors)
+    })
+    
+    
+    output$selection <- renderText({
+        
+        firstYear <- lubridate::year(input$yearSlider[1])
+        lastYear <- lubridate::year(input$yearSlider[2])
+        paste("You've selected: ", firstYear, lastYear)
     })
     
 }
