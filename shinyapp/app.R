@@ -3,10 +3,14 @@ library(shiny)
 library(ggmap)
 library(dplyr)
 library(lubridate)
+library(DT)
+library(here)
 
-popnData <- readRDS(file = "~/GitHub/usCityPopulationTrends/US_census_cityPopnData_latlonAdded_070121.Rds")
+popnData <- readRDS(file = here("US_census_cityPopnData_latlonAdded_070121.Rds"))
 
-us_map_watercolor <- readRDS(file = "~/GitHub/usCityPopulationTrends/backgroundMap_stamenWatercolor.Rds")
+us_map_watercolor <- readRDS(file = here("backgroundMap_stamenWatercolor.Rds"))
+
+us_map_toner_background <- readRDS(file = here("backgroundMap_stamenTonerBackground.Rds"))
 
 # Define the UI
 ui <- fluidPage(
@@ -14,26 +18,26 @@ ui <- fluidPage(
     # Can't get the year to display as e.g. '2010', it always shows as '2,010' instead unless I include the month/day too
     # (even if using dates formatted with lubridate)
     fluidRow(
-        column(9, "slider holder", sliderInput(inputId = "yearSlider", 
+        column(8, offset =  1, sliderInput(inputId = "yearSlider", 
                                                label = h4("Year range for plotting"),
                                                min = as.Date(x = "2010-07-01"), 
                                                max = as.Date(x = "2019-07-01"),
                                                value = c(as.Date(x = "2010-07-01"), as.Date(x = "2019-07-01")), step = 365)),
-        column(3, "show holder"),
-        fluidRow(
-            column(12, "show", offset = 9)
-        ), 
-        fluidRow(
-            column(12, "high/low", offset = 9)
-        ),
-        fluidRow(
-            column(12, "cities", offset = 9)
-        )
+        column(3, checkboxInput(inputId = "useStateMap", label = h4("Map with state borders?"), value = FALSE))
+        # fluidRow(
+        #     column(12, "show", offset = 9)
+        # ), 
+        # fluidRow(
+        #     column(12, "high/low", offset = 9)
+        # ),
+        # fluidRow(
+        #     column(12, "cities", offset = 9)
+        # )
         
     ),
     fluidRow(
-        column(9, "plot", plotOutput(outputId = "map")),
-        column(3, "table", textOutput(outputId = "selection"))
+        column(8, plotOutput(outputId = "map")),
+        column(4, dataTableOutput(outputId = "selection"))
         
     )
     
@@ -45,29 +49,52 @@ server <- function(input, output){
     
     output$map <- renderPlot({
         
-        # Make a column for the population growth percentage from 2010 to 2019
-        popnData <- popnData %>% mutate(perc_change_decade = ((Jul_1_2019 - Jul_1_2010)/Jul_1_2010) * 100)
+        # Get the user selected start and end year for the plot from the slider
+        startYear <- as.character(lubridate::year(input$yearSlider[1]))
+        endYear <- as.character(lubridate::year(input$yearSlider[2]))
         
+        # Make the years into the corresponding column names in the data to use for calculating the percent
+        # change column for the user selected year combination
+        startYearColName <- paste0("Jul_1_", startYear)
+        endYearColName <- paste0("Jul_1_", endYear)
+        
+        popnData <- popnData %>% mutate(perc_change := (((!!as.name(endYearColName)) - (!!as.name(startYearColName)))/(!!as.name(startYearColName))) * 100)
+        
+               
         # Make a color code column to be pink for popn losses, and green for popn gains
         # pink #8e0152
         # green #276419
         
-        popnData <- popnData %>% mutate(colorHolder = case_when(perc_change_decade < 0 ~ "Negative",
-                                                                perc_change_decade >= 0 ~ "Positive"))
+        popnData <- popnData %>% mutate(colorHolder = case_when(perc_change < 0 ~ "Negative",
+                                                                perc_change >= 0 ~ "Positive"))
         
         plotColors <- c("#8e0152", "#276419")
-        
-        ggmap(us_map_watercolor) + 
-        geom_point(data = popnData, mapping = aes(x = longitude, y = latitude, color = colorHolder, size = perc_change_decade), alpha = 0.6) + 
-        scale_color_manual(values = plotColors)
+        if(input$useStateMap == TRUE){
+            ggmap(us_map_toner_background) + 
+            geom_point(data = popnData, mapping = aes(x = longitude, y = latitude, color = colorHolder, size = perc_change), alpha = 0.6) + 
+            scale_color_manual(values = plotColors)
+        } else{
+            ggmap(us_map_watercolor) + 
+                geom_point(data = popnData, mapping = aes(x = longitude, y = latitude, color = colorHolder, size = perc_change), alpha = 0.6) + 
+                scale_color_manual(values = plotColors)
+        }
     })
     
     
-    output$selection <- renderText({
+    output$selection <- DT::renderDataTable({
+        # Get the user selected start and end year for the plot from the slider
+        startYear <- as.character(lubridate::year(input$yearSlider[1]))
+        endYear <- as.character(lubridate::year(input$yearSlider[2]))
         
-        firstYear <- lubridate::year(input$yearSlider[1])
-        lastYear <- lubridate::year(input$yearSlider[2])
-        paste("You've selected: ", firstYear, lastYear)
+        # Make the years into the corresponding column names in the data to use for calculating the percent
+        # change column for the user selected year combination
+        startYearColName <- paste0("Jul_1_", startYear)
+        endYearColName <- paste0("Jul_1_", endYear)
+        
+        popnData <- popnData %>% mutate(perc_change := round(x = (((!!as.name(endYearColName)) - (!!as.name(startYearColName)))/(!!as.name(startYearColName))) * 100, digits = 1)) %>%
+            select(`Geographic Area`, perc_change)
+        
+        popnData
     })
     
 }

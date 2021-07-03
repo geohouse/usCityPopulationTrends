@@ -44,3 +44,8 @@ plotColors <- c("#8e0152", "#276419")
 mappedPoints <- ggmap(us_map_watercolor) + 
     geom_point(data = popnData, mapping = aes(x = longitude, y = latitude, color = colorHolder, size = perc_change_decade), alpha = 0.6) + 
     scale_color_manual(values = plotColors)
+
+
+#test <- "2011"
+#test2 <- paste0("Jul_1_", test)
+#selected <- popnData %>% select(all_of(test2))
