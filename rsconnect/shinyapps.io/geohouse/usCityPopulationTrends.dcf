@@ -1,0 +1,14 @@
+name: usCityPopulationTrends
+title: usCityPopulationTrends
+username:
+account: geohouse
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4349699
+bundleId: 4784507
+url: https://geohouse.shinyapps.io/usCityPopulationTrends/
+when: 1625350775.06354
+lastSyncTime: 1625350775.06356
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: LICENSE|README.md|test_shiny/app.R|sandbox|shinyapp

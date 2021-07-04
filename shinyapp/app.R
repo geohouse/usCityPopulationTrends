@@ -6,11 +6,11 @@ library(lubridate)
 library(DT)
 library(here)
 
-popnData <- readRDS(file = here("US_census_cityPopnData_latlonAdded_070121.Rds"))
+popnData <- readRDS(file = here("data/US_census_cityPopnData_latlonAdded_070121.rds"))
 
-us_map_watercolor <- readRDS(file = here("backgroundMap_stamenWatercolor.Rds"))
+us_map_watercolor <- readRDS(file = here("data/backgroundMap_stamenWatercolor.rds"))
 
-us_map_toner_background <- readRDS(file = here("backgroundMap_stamenTonerBackground.Rds"))
+us_map_toner_background <- readRDS(file = here("data/backgroundMap_stamenTonerBackground.rds"))
 
 # Define the UI
 ui <- fluidPage(
@@ -62,13 +62,13 @@ server <- function(input, output){
         
                
         # Make a color code column to be pink for popn losses, and green for popn gains
-        # pink #8e0152
-        # green #276419
+        # pink #c51b7d
+        # green #4d9221
         
         popnData <- popnData %>% mutate(colorHolder = case_when(perc_change < 0 ~ "Negative",
                                                                 perc_change >= 0 ~ "Positive"))
         
-        plotColors <- c("#8e0152", "#276419")
+        plotColors <- c("#c51b7d", "#4d9221")
         if(input$useStateMap == TRUE){
             ggmap(us_map_toner_background) + 
             geom_point(data = popnData, mapping = aes(x = longitude, y = latitude, color = colorHolder, size = perc_change), alpha = 0.6) + 
